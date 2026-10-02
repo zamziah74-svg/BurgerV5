@@ -23,35 +23,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build Project (Vite)
-        run: |
-          npm run build
-          cp ./dist/index.html ./dist/404.html 2>/dev/null || true
-
-      - name: Verify Production Build
-        run: |
-          if [ ! -f ./dist/index.html ]; then
-            echo "ERROR: dist/index.html was not generated!"
-            exit 1
-          fi
-          if grep -q "/src/main.tsx" ./dist/index.html; then
-            echo "ERROR: dist/index.html contains /src/main.tsx! Production build must not serve source files."
-            exit 1
-          fi
-          echo "SUCCESS: Verified that dist/index.html exists and contains compiled assets."
-
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload Build Artifact (dist folder)
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Production with Vite
+        run: npm run build
+
+      - name: Create 404 Fallback for GitHub Pages
+        run: cp dist/index.html dist/404.html
+
+      - name: Verify Production Build
+        run: |
+          node -e "
+          const fs = require('fs');
+          if (!fs.existsSync('dist/index.html')) {
+            console.error('ERROR: dist/index.html does not exist!');
+            process.exit(1);
+          }
+          const html = fs.readFileSync('dist/index.html', 'utf8');
+          if (html.includes('/src/main.tsx')) {
+            console.error('ERROR: dist/index.html contains /src/main.tsx! Build failed to transform source entry.');
+            process.exit(1);
+          }
+          if (!html.includes('/BurgerV5/assets/')) {
+            console.error('ERROR: dist/index.html does not contain /BurgerV5/assets/ base path!');
+            process.exit(1);
+          }
+          console.log('SUCCESS: Verified dist/index.html exists, has compiled assets, and does not contain /src/main.tsx');
+          "
+
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
