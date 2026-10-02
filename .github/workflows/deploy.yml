@@ -36,6 +36,18 @@ jobs:
           npm run build
           cp ./dist/index.html ./dist/404.html 2>/dev/null || true
 
+      - name: Verify Production Build
+        run: |
+          if [ ! -f ./dist/index.html ]; then
+            echo "ERROR: dist/index.html was not generated!"
+            exit 1
+          fi
+          if grep -q "/src/main.tsx" ./dist/index.html; then
+            echo "ERROR: dist/index.html contains /src/main.tsx! Production build must not serve source files."
+            exit 1
+          fi
+          echo "SUCCESS: Verified that dist/index.html exists and contains compiled assets."
+
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 

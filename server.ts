@@ -147,6 +147,9 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: 'spa',
     });
+    app.get('/', (_req: Request, res: Response) => {
+      res.redirect('/BurgerV5/');
+    });
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
